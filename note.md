@@ -1,7 +1,7 @@
-* fabric学习笔记
-** peer-chaincode
+# fabric学习笔记
+## peer-chaincode
 命令peer -> 子命令chaincode
-××× peer-chaincode-install
+### peer-chaincode-install
 ```
 const installDesc = "Package the specified chaincode into a deployment spec and save it on the peer's path."
 ```
@@ -47,10 +47,10 @@ func install(msg proto.Message, cf *ChaincodeCmdFactory) error {
 type ChaincodeDeploymentSpec struct ----- in fabric/protos/peer/chaincode.pb.go:195
 
 
-** leveldb
-* defination of kv-db in fabric/common/ledger/util/leveldbhelper
+## leveldb
+###  defination of kv-db in fabric/common/ledger/util/leveldbhelper
 helper 设置db配置和基本操作 provider提供对外服务，包装基本操作
-* kv_ledger_provider in fabric/core/ledger/kvledger
+### kv_ledger_provider in fabric/core/ledger/kvledger
 ```
 type Provider struct {
         idStore            *idStore
@@ -59,7 +59,7 @@ type Provider struct {
         historydbProvider  historydb.HistoryDBProvider
 }
 ```
-* fabric/common/ledger/blkstorage/
+### fabric/common/ledger/blkstorage/
 定义了interface type BlockSoreProvider
 in blockstorage.go
 ```
@@ -89,5 +89,5 @@ func NewProvider(conf *Conf, indexConfig *blkstorage.IndexConfig) blkstorage.Blo
         return &FsBlockstoreProvider{conf, indexConfig, p}
 }
 ```
-* fabric/core/ledger/ledger_interface.go
+### fabric/core/ledger/ledger_interface.go
 账本接口
