@@ -93,7 +93,7 @@ func NewProvider(conf *Conf, indexConfig *blkstorage.IndexConfig) blkstorage.Blo
 账本接口
 
 ## chaincode support in peers
-# start
+### start
 in fabric/peer/node/start.go: line 136
 ```
 ccSrv, ccEpFunc := createChaincodeServer(peerServer, listenAddr)
@@ -177,3 +177,63 @@ const (
         ChaincodeMessage_GET_HISTORY_FOR_KEY ChaincodeMessage_Type = 19
 )
 ```
+## how chaincode api works
+主要接口在 fabeic/chaincode/shim/interfaces.go  
+其中Chaincode接口的Init/Invoke方法是每个chaincode必须实现的  
+in fabric/core/chaincode/shim/chaincode.go
+```
+// ChaincodeStub is an object passed to chaincode for shim side handling of
+// APIs.
+type ChaincodeStub struct {
+        TxID           string
+        chaincodeEvent *pb.ChaincodeEvent
+        args           [][]byte
+        handler        *Handler
+        signedProposal *pb.SignedProposal
+        proposal       *pb.Proposal
+
+        // Additional fields extracted from the signedProposal
+        creator   []byte
+        transient map[string][]byte
+        binding   []byte
+}
+```
+编写chaincode时使用stub *ChaincodeStubInterface接口。主要的方法是ChaincodeStub实现的。   
+调用chaincode时使用stub.handler的方法处理。  
+Handler上文提到。我们关注数据库操作，以function PutState为例。  
+定位同目录下 fabric/core/chaincode/shim/handler.go  
+```
+// Handler handler implementation for shim side of chaincode.
+type Handler struct {
+        sync.RWMutex
+        //shim to peer grpc serializer. User only in serialSend
+        serialLock sync.Mutex
+        To         string
+        ChatStream PeerChaincodeStream
+        FSM        *fsm.FSM
+        cc         Chaincode
+        // Multiple queries (and one transaction) with different txids can be executing in parallel for this chaincode
+        // responseChannel is the channel on which responses are communicated by the shim to the chaincodeStub.
+        responseChannel map[string]chan pb.ChaincodeMessage
+        nextState       chan *nextStateInfo
+}
+```
+定位function handlePutState，关键调用
+```
+responseMsg, err = handler.sendReceive(msg, respChan);
+```
+该方法也在handler.go文件中，依次调用  
+handler.serialSendAsync(msg, errc)  
+handler.serialSend(msg)  
+handler.ChatStream.Send(msg)
+ChatStream成员的类型PeerChaincodeStream 定义在本文件
+```
+// PeerChaincodeStream interface for stream between Peer and chaincode instance.
+type PeerChaincodeStream interface {
+        Send(*pb.ChaincodeMessage) error
+        Recv() (*pb.ChaincodeMessage, error)
+        CloseSend() error
+}
+```
+Send由inProcStream实现 in inprostream.go  
+接下来交给peer处理。。。
